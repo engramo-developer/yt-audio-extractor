@@ -38,8 +38,15 @@ def test_build_parser_parses_defaults() -> None:
     assert args.format == "mp3"
     assert args.quality == "0"
     assert args.quiet is False
+    assert args.verbose is False
     assert args.no_metadata is False
     assert args.no_thumbnail is False
+
+
+def test_build_parser_verbose_flag() -> None:
+    args = build_parser().parse_args(["https://example.com/video", "--verbose"])
+
+    assert args.verbose is True
 
 
 def test_build_parser_accepts_multiple_urls_and_options(tmp_path: Path) -> None:
@@ -105,7 +112,9 @@ def test_main_returns_one_on_partial_failure(
 
     assert exit_code == 1
     err = capsys.readouterr().err
-    assert "video is private" in err
+    # Raw yt-dlp detail is replaced with a plain-language message.
+    assert "couldn't download" in err.lower()
+    assert "private" in err.lower()
 
 
 def test_main_quiet_suppresses_success_output_but_not_errors(
@@ -126,7 +135,7 @@ def test_main_quiet_suppresses_success_output_but_not_errors(
     assert exit_code == 1
     captured = capsys.readouterr()
     assert captured.out == ""
-    assert "boom" in captured.err
+    assert "couldn't download" in captured.err.lower()
 
 
 def test_main_returns_two_when_ffmpeg_missing(
@@ -156,11 +165,39 @@ def test_main_version_exits_zero_and_prints_version(capsys: pytest.CaptureFixtur
     assert ytaudio.__version__ in out
 
 
-def test_main_missing_url_arg_exits_two() -> None:
+def test_main_missing_url_arg_exits_two_when_not_interactive() -> None:
+    # Under pytest, stdin is not a TTY → no prompt, argparse-style error (exit 2).
     with pytest.raises(SystemExit) as exc_info:
         main([])
 
     assert exc_info.value.code == 2
+
+
+def test_main_prompts_for_url_when_none_given(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda prompt="": "https://example.com/x")
+    mock_extractor = MagicMock()
+    mock_extractor.extract.side_effect = lambda url: _fake_result(url)
+    monkeypatch.setattr("ytaudio.cli.AudioExtractor", MagicMock(return_value=mock_extractor))
+
+    exit_code = main([])
+
+    assert exit_code == 0
+    mock_extractor.extract.assert_called_once_with("https://example.com/x")
+
+
+def test_main_prompt_empty_input_returns_zero(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("builtins.input", lambda prompt="": "")
+
+    exit_code = main([])
+
+    assert exit_code == 0
+    assert "bye" in capsys.readouterr().out.lower()
 
 
 def test_main_invalid_format_choice_exits_two() -> None:

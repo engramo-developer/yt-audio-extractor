@@ -34,6 +34,9 @@ Install `ffmpeg` if you don't have it:
 # Simplest case — MP3 into the current directory, tags + cover art embedded
 yt-audio-extractor "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 
+# No URL? Just run it and paste the link when prompted:
+yt-audio-extractor
+
 # Choose format, output dir, quality
 yt-audio-extractor -f m4a -o ~/Music -q 0 "https://youtu.be/dQw4w9WgXcQ"
 
@@ -46,11 +49,18 @@ yt-audio-extractor --no-metadata --no-thumbnail URL
 # Get past a login/age wall with browser cookies (opt-in)
 yt-audio-extractor --cookies-from-browser chrome URL
 yt-audio-extractor --cookies-file cookies.txt URL
+
+# See the full technical output when something goes wrong
+yt-audio-extractor --verbose URL
 ```
 
-The module form works too: `python -m ytaudio URL`.
+Output is clean by default — a progress bar and a `✓ Saved: …` line per URL,
+with plain-language messages on failure. Pass `--verbose` for the raw `yt-dlp`
+logs, or `--quiet` to print only errors. The module form works too:
+`python -m ytaudio URL`.
 
-**Exit codes:** `0` all succeeded · `1` at least one URL failed · `2` `ffmpeg` missing or bad args.
+**Exit codes:** `0` all succeeded (or nothing to do) · `1` at least one URL failed ·
+`2` `ffmpeg` missing or bad args.
 
 ## Library
 

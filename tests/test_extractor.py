@@ -10,10 +10,9 @@ from yt_dlp.utils import DownloadError
 from ytaudio.exceptions import BotProtectionError, VideoUnavailableError
 from ytaudio.extractor import AudioExtractor
 from ytaudio.options import AudioFormat, ExtractionResult, ExtractOptions, PlayerClient
-from ytaudio.resilience import FallbackStrategy
 
 
-def test_build_ydl_opts_uses_default_client_and_format(tmp_path: Path) -> None:
+def test_build_ydl_opts_uses_client_and_format(tmp_path: Path) -> None:
     options = ExtractOptions(
         output_dir=tmp_path,
         audio_format=AudioFormat.MP3,
@@ -22,11 +21,10 @@ def test_build_ydl_opts_uses_default_client_and_format(tmp_path: Path) -> None:
     )
     extractor = AudioExtractor(options)
 
-    opts = extractor._build_ydl_opts(FallbackStrategy(PlayerClient.ANDROID, use_cookies=False))
+    opts = extractor._build_ydl_opts(PlayerClient.ANDROID)
 
     assert opts["format"] == "bestaudio/best"
     assert opts["outtmpl"] == str(tmp_path / "%(title)s.%(ext)s")
-    assert opts["quiet"] is False
     assert opts["extractor_args"] == {"youtube": {"player_client": ["android"]}}
 
     postprocessors = opts["postprocessors"]
@@ -37,13 +35,52 @@ def test_build_ydl_opts_uses_default_client_and_format(tmp_path: Path) -> None:
     assert pp["preferredquality"] == "0"
 
 
-def test_build_ydl_opts_reflects_strategy_client(tmp_path: Path) -> None:
-    options = ExtractOptions(output_dir=tmp_path)
-    extractor = AudioExtractor(options)
+def test_build_ydl_opts_reflects_client(tmp_path: Path) -> None:
+    extractor = AudioExtractor(ExtractOptions(output_dir=tmp_path))
 
-    opts = extractor._build_ydl_opts(FallbackStrategy(PlayerClient.WEB, use_cookies=False))
+    opts = extractor._build_ydl_opts(PlayerClient.WEB)
 
     assert opts["extractor_args"] == {"youtube": {"player_client": ["web"]}}
+
+
+def test_build_ydl_opts_is_silent_by_default(tmp_path: Path) -> None:
+    extractor = AudioExtractor(ExtractOptions(output_dir=tmp_path))
+
+    opts = extractor._build_ydl_opts(PlayerClient.ANDROID)
+
+    assert opts["quiet"] is True
+    assert opts["no_warnings"] is True
+    assert "logger" in opts
+    assert "verbose" not in opts
+
+
+def test_build_ydl_opts_verbose_shows_logs(tmp_path: Path) -> None:
+    extractor = AudioExtractor(ExtractOptions(output_dir=tmp_path, verbose=True))
+
+    opts = extractor._build_ydl_opts(PlayerClient.ANDROID)
+
+    assert opts["verbose"] is True
+    assert "quiet" not in opts
+    assert "logger" not in opts
+
+
+def test_build_ydl_opts_wires_progress_hook_when_set(tmp_path: Path) -> None:
+    def hook(status: dict[str, Any]) -> None:
+        return None
+
+    extractor = AudioExtractor(ExtractOptions(output_dir=tmp_path, progress_hook=hook))
+
+    opts = extractor._build_ydl_opts(PlayerClient.ANDROID)
+
+    assert opts["progress_hooks"] == [hook]
+
+
+def test_build_ydl_opts_omits_progress_hook_by_default(tmp_path: Path) -> None:
+    extractor = AudioExtractor(ExtractOptions(output_dir=tmp_path))
+
+    opts = extractor._build_ydl_opts(PlayerClient.ANDROID)
+
+    assert "progress_hooks" not in opts
 
 
 def test_extract_calls_extract_info_with_download_true(
@@ -51,13 +88,11 @@ def test_extract_calls_extract_info_with_download_true(
 ) -> None:
     monkeypatch.setattr("ytaudio.extractor.YoutubeDL", mock_ydl_class)
     url = "https://www.youtube.com/watch?v=abc123"
-    options = ExtractOptions(output_dir=tmp_path)
-    extractor = AudioExtractor(options)
+    extractor = AudioExtractor(ExtractOptions(output_dir=tmp_path))
 
     extractor.extract(url)
 
-    mock_instance = mock_ydl_class.return_value
-    mock_instance.extract_info.assert_called_once_with(url, download=True)
+    mock_ydl_class.return_value.extract_info.assert_called_once_with(url, download=True)
 
 
 def test_extract_returns_populated_extraction_result(
@@ -68,8 +103,7 @@ def test_extract_returns_populated_extraction_result(
 ) -> None:
     monkeypatch.setattr("ytaudio.extractor.YoutubeDL", mock_ydl_class)
     url = "https://www.youtube.com/watch?v=abc123"
-    options = ExtractOptions(output_dir=tmp_path, audio_format=AudioFormat.MP3)
-    extractor = AudioExtractor(options)
+    extractor = AudioExtractor(ExtractOptions(output_dir=tmp_path, audio_format=AudioFormat.MP3))
 
     result = extractor.extract(url)
 
@@ -87,8 +121,7 @@ def test_extract_raises_video_unavailable_when_info_is_none(
 ) -> None:
     mock_ydl_class.return_value.extract_info.return_value = None
     monkeypatch.setattr("ytaudio.extractor.YoutubeDL", mock_ydl_class)
-    options = ExtractOptions(output_dir=tmp_path)
-    extractor = AudioExtractor(options)
+    extractor = AudioExtractor(ExtractOptions(output_dir=tmp_path))
 
     with pytest.raises(VideoUnavailableError):
         extractor.extract("https://www.youtube.com/watch?v=missing")
@@ -119,8 +152,7 @@ def test_extract_fails_fast_on_fatal_error_without_retrying(
 ) -> None:
     mock_ydl_class.return_value.extract_info.side_effect = DownloadError("Video unavailable")
     monkeypatch.setattr("ytaudio.extractor.YoutubeDL", mock_ydl_class)
-    options = ExtractOptions(output_dir=tmp_path)
-    extractor = AudioExtractor(options)
+    extractor = AudioExtractor(ExtractOptions(output_dir=tmp_path))
 
     with pytest.raises(VideoUnavailableError):
         extractor.extract("https://www.youtube.com/watch?v=gone")
@@ -128,7 +160,7 @@ def test_extract_fails_fast_on_fatal_error_without_retrying(
     assert mock_ydl_class.call_count == 1
 
 
-def test_extract_raises_bot_protection_when_all_strategies_exhausted(
+def test_extract_raises_bot_protection_when_all_clients_exhausted(
     monkeypatch: pytest.MonkeyPatch, mock_ydl_class: MagicMock, tmp_path: Path
 ) -> None:
     mock_ydl_class.return_value.extract_info.side_effect = DownloadError(
@@ -149,12 +181,11 @@ def test_extract_raises_bot_protection_when_all_strategies_exhausted(
 def test_extract_many_skips_failed_urls_without_aborting_batch(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
-    options = ExtractOptions(output_dir=tmp_path)
-    extractor = AudioExtractor(options)
+    extractor = AudioExtractor(ExtractOptions(output_dir=tmp_path))
 
     def fake_extract(url: str) -> ExtractionResult:
         if url == "https://bad":
-            raise BotProtectionError("all strategies exhausted")
+            raise BotProtectionError("all clients exhausted")
         return ExtractionResult(
             url=url,
             filepath=tmp_path / "out.mp3",
@@ -176,10 +207,9 @@ def test_extract_many_skips_failed_urls_without_aborting_batch(
 def test_build_ydl_opts_includes_ffmpeg_metadata_when_embed_metadata_true(
     tmp_path: Path,
 ) -> None:
-    options = ExtractOptions(output_dir=tmp_path, embed_metadata=True)
-    extractor = AudioExtractor(options)
+    extractor = AudioExtractor(ExtractOptions(output_dir=tmp_path, embed_metadata=True))
 
-    opts = extractor._build_ydl_opts(FallbackStrategy(PlayerClient.ANDROID, use_cookies=False))
+    opts = extractor._build_ydl_opts(PlayerClient.ANDROID)
 
     keys = [pp["key"] for pp in opts["postprocessors"]]
     assert "FFmpegMetadata" in keys
@@ -190,10 +220,9 @@ def test_build_ydl_opts_includes_ffmpeg_metadata_when_embed_metadata_true(
 def test_build_ydl_opts_omits_ffmpeg_metadata_when_embed_metadata_false(
     tmp_path: Path,
 ) -> None:
-    options = ExtractOptions(output_dir=tmp_path, embed_metadata=False)
-    extractor = AudioExtractor(options)
+    extractor = AudioExtractor(ExtractOptions(output_dir=tmp_path, embed_metadata=False))
 
-    opts = extractor._build_ydl_opts(FallbackStrategy(PlayerClient.ANDROID, use_cookies=False))
+    opts = extractor._build_ydl_opts(PlayerClient.ANDROID)
 
     keys = [pp["key"] for pp in opts["postprocessors"]]
     assert "FFmpegMetadata" not in keys
@@ -202,10 +231,9 @@ def test_build_ydl_opts_omits_ffmpeg_metadata_when_embed_metadata_false(
 def test_build_ydl_opts_includes_embed_thumbnail_and_writethumbnail_when_true(
     tmp_path: Path,
 ) -> None:
-    options = ExtractOptions(output_dir=tmp_path, embed_thumbnail=True)
-    extractor = AudioExtractor(options)
+    extractor = AudioExtractor(ExtractOptions(output_dir=tmp_path, embed_thumbnail=True))
 
-    opts = extractor._build_ydl_opts(FallbackStrategy(PlayerClient.ANDROID, use_cookies=False))
+    opts = extractor._build_ydl_opts(PlayerClient.ANDROID)
 
     keys = [pp["key"] for pp in opts["postprocessors"]]
     assert "EmbedThumbnail" in keys
@@ -215,10 +243,9 @@ def test_build_ydl_opts_includes_embed_thumbnail_and_writethumbnail_when_true(
 def test_build_ydl_opts_omits_embed_thumbnail_and_writethumbnail_when_false(
     tmp_path: Path,
 ) -> None:
-    options = ExtractOptions(output_dir=tmp_path, embed_thumbnail=False)
-    extractor = AudioExtractor(options)
+    extractor = AudioExtractor(ExtractOptions(output_dir=tmp_path, embed_thumbnail=False))
 
-    opts = extractor._build_ydl_opts(FallbackStrategy(PlayerClient.ANDROID, use_cookies=False))
+    opts = extractor._build_ydl_opts(PlayerClient.ANDROID)
 
     keys = [pp["key"] for pp in opts["postprocessors"]]
     assert "EmbedThumbnail" not in keys
@@ -228,55 +255,39 @@ def test_build_ydl_opts_omits_embed_thumbnail_and_writethumbnail_when_false(
 def test_build_ydl_opts_postprocessor_order_extract_audio_before_thumbnail(
     tmp_path: Path,
 ) -> None:
-    options = ExtractOptions(output_dir=tmp_path, embed_metadata=True, embed_thumbnail=True)
-    extractor = AudioExtractor(options)
+    extractor = AudioExtractor(
+        ExtractOptions(output_dir=tmp_path, embed_metadata=True, embed_thumbnail=True)
+    )
 
-    opts = extractor._build_ydl_opts(FallbackStrategy(PlayerClient.ANDROID, use_cookies=False))
+    opts = extractor._build_ydl_opts(PlayerClient.ANDROID)
 
     keys = [pp["key"] for pp in opts["postprocessors"]]
     assert keys == ["FFmpegExtractAudio", "FFmpegMetadata", "EmbedThumbnail"]
 
 
-def test_build_ydl_opts_sets_cookiesfrombrowser_tuple_when_strategy_uses_cookies(
-    tmp_path: Path,
-) -> None:
-    options = ExtractOptions(output_dir=tmp_path, cookies_from_browser="chrome")
-    extractor = AudioExtractor(options)
+def test_build_ydl_opts_sets_cookiesfrombrowser_tuple_when_configured(tmp_path: Path) -> None:
+    extractor = AudioExtractor(ExtractOptions(output_dir=tmp_path, cookies_from_browser="chrome"))
 
-    opts = extractor._build_ydl_opts(FallbackStrategy(PlayerClient.ANDROID, use_cookies=True))
+    opts = extractor._build_ydl_opts(PlayerClient.ANDROID)
 
     assert opts["cookiesfrombrowser"] == ("chrome",)
     assert "cookiefile" not in opts
 
 
-def test_build_ydl_opts_sets_cookiefile_when_strategy_uses_cookies(tmp_path: Path) -> None:
+def test_build_ydl_opts_sets_cookiefile_when_configured(tmp_path: Path) -> None:
     cookies_path = tmp_path / "cookies.txt"
-    options = ExtractOptions(output_dir=tmp_path, cookies_file=cookies_path)
-    extractor = AudioExtractor(options)
+    extractor = AudioExtractor(ExtractOptions(output_dir=tmp_path, cookies_file=cookies_path))
 
-    opts = extractor._build_ydl_opts(FallbackStrategy(PlayerClient.ANDROID, use_cookies=True))
+    opts = extractor._build_ydl_opts(PlayerClient.ANDROID)
 
     assert opts["cookiefile"] == str(cookies_path)
     assert "cookiesfrombrowser" not in opts
 
 
 def test_build_ydl_opts_omits_cookie_keys_by_default(tmp_path: Path) -> None:
-    options = ExtractOptions(output_dir=tmp_path)
-    extractor = AudioExtractor(options)
+    extractor = AudioExtractor(ExtractOptions(output_dir=tmp_path))
 
-    opts = extractor._build_ydl_opts(FallbackStrategy(PlayerClient.ANDROID, use_cookies=False))
-
-    assert "cookiesfrombrowser" not in opts
-    assert "cookiefile" not in opts
-
-
-def test_build_ydl_opts_omits_cookie_keys_when_strategy_use_cookies_false_even_if_configured(
-    tmp_path: Path,
-) -> None:
-    options = ExtractOptions(output_dir=tmp_path, cookies_from_browser="chrome")
-    extractor = AudioExtractor(options)
-
-    opts = extractor._build_ydl_opts(FallbackStrategy(PlayerClient.ANDROID, use_cookies=False))
+    opts = extractor._build_ydl_opts(PlayerClient.ANDROID)
 
     assert "cookiesfrombrowser" not in opts
     assert "cookiefile" not in opts
@@ -287,11 +298,9 @@ def test_probe_calls_extract_info_with_download_false(
 ) -> None:
     monkeypatch.setattr("ytaudio.extractor.YoutubeDL", mock_ydl_class)
     url = "https://www.youtube.com/watch?v=abc123"
-    options = ExtractOptions(output_dir=tmp_path)
-    extractor = AudioExtractor(options)
+    extractor = AudioExtractor(ExtractOptions(output_dir=tmp_path))
 
     info = extractor.probe(url)
 
-    mock_instance = mock_ydl_class.return_value
-    mock_instance.extract_info.assert_called_once_with(url, download=False)
+    mock_ydl_class.return_value.extract_info.assert_called_once_with(url, download=False)
     assert info["title"] == "Some Video Title"

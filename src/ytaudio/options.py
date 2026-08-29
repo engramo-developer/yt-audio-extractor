@@ -7,9 +7,11 @@ user intent into `yt-dlp` options. Enums subclass `str, Enum` so their
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 
 class AudioFormat(str, Enum):
@@ -46,7 +48,10 @@ class ExtractOptions:
         PlayerClient.TV,
         PlayerClient.WEB,
     )
-    quiet: bool = False
+    verbose: bool = False  # False → yt-dlp runs silently; True → show its full logs
+    # Advanced: a yt-dlp progress hook, called with yt-dlp's progress dict.
+    # The CLI uses this to render a simple progress bar; most callers leave it None.
+    progress_hook: Callable[[dict[str, Any]], None] | None = None
 
     def __post_init__(self) -> None:
         # Accept str or Path for path-like fields, and expand a leading `~`,

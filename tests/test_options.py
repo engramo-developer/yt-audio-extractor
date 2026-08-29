@@ -24,7 +24,8 @@ def test_extract_options_defaults() -> None:
         PlayerClient.TV,
         PlayerClient.WEB,
     )
-    assert options.quiet is False
+    assert options.verbose is False
+    assert options.progress_hook is None
 
 
 def test_extract_options_normalizes_str_output_dir_and_expands_tilde() -> None:
@@ -45,7 +46,7 @@ def test_extract_options_is_frozen() -> None:
     options = ExtractOptions()
 
     with pytest.raises(dataclasses.FrozenInstanceError):
-        options.quiet = True  # type: ignore[misc]
+        options.verbose = True  # type: ignore[misc]
 
 
 def test_audio_format_values_match_ffmpeg_codec_tokens() -> None:

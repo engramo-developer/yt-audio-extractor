@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+### Changed
+- CLI is friendlier for non-technical users: `yt-dlp`'s technical logs are hidden by default
+  (a simple progress bar + plain-language success/error messages instead), with `--verbose` to
+  restore the full logs. Running with no URL now prompts for one instead of erroring.
+- Cookies, when configured, are applied on every extraction attempt (removed the internal
+  two-phase no-cookies-then-cookies ladder and the `FallbackStrategy` type — the extractor now
+  simply iterates `client_order`).
+- `ExtractOptions.quiet` replaced by `ExtractOptions.verbose` (inverted meaning); added an
+  advanced `progress_hook` field.
+
 ## [0.1.0] - 2026-08-29
 
 ### Added
