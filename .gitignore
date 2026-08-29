@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+
+# Tooling caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.claude/.review-cache/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Downloaded media
+*.mp3
+*.m4a
+*.opus
+*.flac
+*.webp
+*.part
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
