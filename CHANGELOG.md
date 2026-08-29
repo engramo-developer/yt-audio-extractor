@@ -33,7 +33,7 @@ All notable changes to this project are documented here. The format is based on
 - `argparse` CLI (`yt-audio-extractor` / `python -m ytaudio`) with per-URL results and
   meaningful exit codes.
 - PEP 561 `py.typed` marker so consumers get full type inference.
-- GitHub Actions CI (Python 3.9–3.13, plus a weekly run against the latest `yt-dlp`) and a
+- GitHub Actions CI (Python 3.10–3.13, plus a weekly run against the latest `yt-dlp`) and a
   tag-triggered PyPI release workflow using Trusted Publishing.
 
 [Unreleased]: https://github.com/engramo-developer/yt-audio-extractor/compare/v0.1.0...HEAD

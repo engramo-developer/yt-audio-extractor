@@ -8,13 +8,13 @@ format selection, `ffmpeg` post-processing, ID3 tag + thumbnail embedding, and �
 YouTube's anti-bot walls ("Sign in to confirm you're not a bot", "The page needs to be reloaded")
 via an automatic **player-client fallback ladder** and opt-in cookies.
 
-- **Distribution:** `yt-audio-extractor` · **Import package:** `ytaudio` · **Python:** 3.9+
+- **Distribution:** `yt-audio-extractor` · **Import package:** `ytaudio` · **Python:** 3.10+
 - **Requires** [`ffmpeg`](https://ffmpeg.org/download.html) on your `PATH` (the tool tells you how
   to install it if it's missing).
 
 ## Install
 
-`yt-audio-extractor` is a Python package (3.9+; a recent 3.11–3.13 is ideal). Install it into an
+`yt-audio-extractor` is a Python package (3.10+; a recent 3.11–3.13 is ideal). Install it into an
 **isolated environment** so it doesn't touch your system Python. Pick one of the two options below.
 
 > **Not on PyPI yet.** Until the first release, install from source by replacing

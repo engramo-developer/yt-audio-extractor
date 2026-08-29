@@ -7,7 +7,9 @@ to reliably extract audio from YouTube (and other supported sites). It abstracts
 selection, `ffmpeg` post-processing, ID3/thumbnail embedding, and YouTube's anti-bot mitigations
 (player-client fallback, opt-in cookies).
 
-**Distribution name:** `yt-audio-extractor` · **Import package:** `ytaudio` · **Python:** 3.9+
+**Distribution name:** `yt-audio-extractor` · **Import package:** `ytaudio` · **Python:** 3.10+
+(3.9 reached end-of-life 2025-10-05 and is intentionally not supported; `ExtractOptions`/
+`ExtractionResult` use `@dataclass(slots=True)`, which requires 3.10+)
 
 **Stack:** yt-dlp (Python API, in-process) · ffmpeg (host binary) · argparse (CLI) ·
 pytest + mypy (strict) + ruff · GitHub Actions · Hatchling build backend.
