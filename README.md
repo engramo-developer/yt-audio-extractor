@@ -14,11 +14,47 @@ via an automatic **player-client fallback ladder** and opt-in cookies.
 
 ## Install
 
+`yt-audio-extractor` is a Python package (3.9+; a recent 3.11–3.13 is ideal). Install it into an
+**isolated environment** so it doesn't touch your system Python. Pick one of the two options below.
+
+> **Not on PyPI yet.** Until the first release, install from source by replacing
+> `yt-audio-extractor` in the commands below with
+> `git+https://github.com/engramo-developer/yt-audio-extractor.git` — e.g.
+> `pipx install git+https://github.com/engramo-developer/yt-audio-extractor.git`.
+
+### Option A — pipx (recommended for using the CLI)
+
+[pipx](https://pipx.pypa.io) installs the tool in its own isolated environment **and** puts the
+`yt-audio-extractor` command on your `PATH`, so it works everywhere without activating anything:
+
 ```bash
+pipx install yt-audio-extractor
+```
+
+### Option B — a virtual environment
+
+Create a project-local virtual environment and install into it:
+
+```bash
+# macOS / Linux
+python3 -m venv .venv
+source .venv/bin/activate
 pip install yt-audio-extractor
 ```
 
-Install `ffmpeg` if you don't have it:
+```powershell
+# Windows (PowerShell)
+py -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install yt-audio-extractor
+```
+
+The `yt-audio-extractor` command is available while the venv is active; run `deactivate` to leave
+it. Nothing lands in your system Python either way.
+
+### ffmpeg
+
+Install `ffmpeg` if you don't have it (the tool prints this hint too if it's missing):
 
 | OS | Command |
 |---|---|
