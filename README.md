@@ -17,11 +17,6 @@ via an automatic **player-client fallback ladder** and opt-in cookies.
 `yt-audio-extractor` is a Python package (3.10+; a recent 3.11–3.13 is ideal). Install it into an
 **isolated environment** so it doesn't touch your system Python. Pick one of the two options below.
 
-> **Not on PyPI yet.** Until the first release, install from source by replacing
-> `yt-audio-extractor` in the commands below with
-> `git+https://github.com/engramo-developer/yt-audio-extractor.git` — e.g.
-> `pipx install git+https://github.com/engramo-developer/yt-audio-extractor.git`.
-
 ### Option A — pipx (recommended for using the CLI)
 
 [pipx](https://pipx.pypa.io) installs the tool in its own isolated environment **and** puts the
