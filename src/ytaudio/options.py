@@ -33,20 +33,27 @@ class PlayerClient(str, Enum):
 class ExtractOptions:
     """User-facing configuration for :class:`ytaudio.extractor.AudioExtractor`."""
 
-    output_dir: Path = field(default_factory=Path.cwd)
+    output_dir: str | Path = field(default_factory=Path.cwd)
     output_template: str = "%(title)s.%(ext)s"
     audio_format: AudioFormat = AudioFormat.MP3
     audio_quality: str = "0"  # yt-dlp/ffmpeg VBR scale, 0 = best
     embed_metadata: bool = True
     embed_thumbnail: bool = True
     cookies_from_browser: str | None = None  # e.g. "chrome", "firefox"
-    cookies_file: Path | None = None
+    cookies_file: str | Path | None = None
     client_order: tuple[PlayerClient, ...] = (
         PlayerClient.ANDROID,
         PlayerClient.TV,
         PlayerClient.WEB,
     )
     quiet: bool = False
+
+    def __post_init__(self) -> None:
+        # Accept str or Path for path-like fields, and expand a leading `~`,
+        # so `output_dir="~/Music"` works. Frozen dataclass → set via object.
+        object.__setattr__(self, "output_dir", Path(self.output_dir).expanduser())
+        if self.cookies_file is not None:
+            object.__setattr__(self, "cookies_file", Path(self.cookies_file).expanduser())
 
 
 @dataclass(frozen=True, slots=True)

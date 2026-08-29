@@ -29,7 +29,7 @@ class AudioExtractor:
 
     def _build_ydl_opts(self, strategy: FallbackStrategy) -> dict[str, Any]:
         """Build the `yt-dlp` options dict for a single fallback `strategy`."""
-        outtmpl = str(self._options.output_dir / self._options.output_template)
+        outtmpl = str(Path(self._options.output_dir) / self._options.output_template)
         postprocessors: list[dict[str, Any]] = [
             {
                 "key": "FFmpegExtractAudio",

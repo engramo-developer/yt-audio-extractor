@@ -27,6 +27,20 @@ def test_extract_options_defaults() -> None:
     assert options.quiet is False
 
 
+def test_extract_options_normalizes_str_output_dir_and_expands_tilde() -> None:
+    options = ExtractOptions(output_dir="~/Music")
+
+    assert isinstance(options.output_dir, Path)
+    assert options.output_dir == Path.home() / "Music"
+
+
+def test_extract_options_normalizes_str_cookies_file_and_expands_tilde() -> None:
+    options = ExtractOptions(cookies_file="~/cookies.txt")
+
+    assert isinstance(options.cookies_file, Path)
+    assert options.cookies_file == Path.home() / "cookies.txt"
+
+
 def test_extract_options_is_frozen() -> None:
     options = ExtractOptions()
 

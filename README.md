@@ -60,7 +60,7 @@ from ytaudio import AudioExtractor, ExtractOptions, AudioFormat
 extractor = AudioExtractor(
     ExtractOptions(
         audio_format=AudioFormat.MP3,
-        output_dir="~/Music",  # str or pathlib.Path
+        output_dir="~/Music",  # str or pathlib.Path; a leading ~ is expanded
         embed_metadata=True,
         embed_thumbnail=True,
     )
@@ -113,6 +113,30 @@ not here. This library stays a thin, current layer on top:
    `cookies_from_browser="chrome"` or a `cookies.txt` and the library retries the ladder with them.
 4. **Loose `yt-dlp` floor, no ceiling.** If a video breaks, **update yt-dlp first** —
    `pip install -U yt-dlp` — to pick up upstream YouTube fixes without waiting on a release here.
+
+## Troubleshooting
+
+**"Video unavailable" / "This video is unavailable" on videos you know are public.**
+This is almost always YouTube bot-walling your IP, not a real takedown — the same request
+succeeds from a browser. Work through it in order:
+
+1. **Update yt-dlp first** — most YouTube breakage is fixed upstream within days:
+   ```bash
+   pip install -U yt-dlp
+   ```
+2. **Supply cookies from a browser that is signed in to YouTube.** Anonymous cookies do **not**
+   defeat the wall — you must be logged into your YouTube/Google account in that browser:
+   ```bash
+   yt-audio-extractor --cookies-from-browser firefox "<url>"
+   # or an exported Netscape cookies.txt:
+   yt-audio-extractor --cookies-file cookies.txt "<url>"
+   ```
+   On macOS, reading Chrome/Safari cookies may prompt for Keychain / Full Disk Access; Firefox
+   reads without a prompt.
+3. **Try a different network** if you're on a datacenter/VPN IP — those are aggressively walled.
+
+`FfmpegNotFoundError` at startup means `ffmpeg` isn't on your `PATH` — install it (see the table
+above); the error message includes the exact command for your OS.
 
 ## Development
 
